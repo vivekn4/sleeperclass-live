@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<!-- Crafted by Vivek Nair (VN) — github.com/vivekn4 -->
+<html lang="en">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+ <meta name="author" content="Vivek Nair (VN)" />
+ <meta name="description" content="SleeperClass.live — a late-night Indian Railways sleeper-coach experience. Ambient train sounds, passing stations, lo-fi vibes." />
+ <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='6' y='18' width='52' height='26' rx='6' fill='%231c3b5e'/%3E%3Crect x='10' y='22' width='44' height='10' rx='2' fill='%23f8be00'/%3E%3Ccircle cx='18' cy='48' r='5' fill='%2350555c'/%3E%3Ccircle cx='46' cy='48' r='5' fill='%2350555c'/%3E%3C/svg%3E" />
+ <title>SleeperClass.live – Late Night Indian Railways Experience</title>
+ <!--Authentic Signage & Typography -->
+ <link rel="preconnect" href="https://fonts.googleapis.com">
+ <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+ <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@700&family=Hind:wght@600;700&family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
+ <style>
+ :root {
+ --coach-blue: #1c3b5e;
+ --coach-blue-dark: #10243b;
+ --frame-rim: #2d3138;
+ --frame-rubber: #121316;
+ --metal-bar-light: #e0e0e0;
+ --metal-bar-dark: #50555c;
+ --ir-yellow: #f8be00;
+ --ir-yellow-dark: #e0a900;
+ --ir-black: #111111;
+ --box-red: #8b1818;
+ --box-red-dark: #580d0d;
+ --stencil-yellow: #f5d76e;
+ --chain-metal: #a0a5ac;
+ }
+{
+ box-sizing: border-box;
+ margin: 0;
+ padding: 0;
+ }
+ body {
+ background-color: #030508;
+ color: #e0e6ed;
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ justify-content: center;
+ min-height: 100vh;
+ font-family: system-ui, -apple-system, sans-serif;
+ overflow-x: hidden;
+ user-select: none;
+ padding: 20px 0;
+ }
+ /* MAIN COACH CONTAINER */
+ .sleeper-wall {
+ position: relative;
+ width: 920px;
+ max-width: 95vw;
+ background: linear-gradient(180deg, var(--coach-blue) 0%, var(--coach-blue-dark) 100%);
+ border-radius: 16px;
+ padding: 30px;
+ box-shadow: inset 0 0 100px rgba(0,0,0,0.85), 0 25px 60px rgba(0,0,0,0.9);
+ display: flex;
+ gap: 25px;
+ align-items: center;
+ border: 2px solid #2a4c75;
+ }
+ .coach-stencil {
+ position: absolute;
+ top: 10px;
+ left: 24px;
+ color: rgba(255, 255, 255, 0.35);
+ font-family: 'Courier Prime', monospace;
+ font-weight: bold;
+ font-size: 0.8rem;
+ letter-spacing: 2px;
+ text-transform: uppercase;
+ }
+ /* 1. EMERGENCY CHAIN ASSEMBLY */
+ .alarm-assembly {
+ position: relative;
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ width: 150px;
+ flex-shrink: 0;
+ }
+ .alarm-box {
+ position: relative;
+ width: 145px;
+ background: linear-gradient(180deg, var(--box-red) 0%, var(--box-red-dark) 100%);
+ border: 3px solid #2d0606;
+ border-radius: 8px;
+ padding: 10px 8px;
+ box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.3), 0 8px 20px rgba(0,0,0,0.8);
+ text-align: center;
+ color: var(--stencil-yellow);z-index: 2;
+ }
+ .alarm-box.pulled {
+ animation: boxEmergencyFlash 0.6s infinite alternate;
+ }
+ @keyframes boxEmergencyFlash {
+ 0% { border-color: #2d0606;box-shadow: 0 0 10px rgba(255, 0, 0, 0.2); }
+ 100% { border-color: #ff3333;box-shadow: 0 0 25px rgba(255, 0, 0, 0.8); }
+ }
+ .stencil-hi {
+ font-family: 'Hind', sans-serif;
+ font-size: 0.68rem;
+ line-height: 1.1;
+ font-weight: 700;
+ }
+ .stencil-en {
+ font-family: 'Courier Prime', monospace;
+ font-size: 0.62rem;
+ font-weight: 700;
+ letter-spacing: 0.5px;
+ margin-top: 2px;
+ border-bottom: 1px dashed rgba(245, 215, 110, 0.4);
+ padding-bottom: 3px;
+ }
+ .stencil-fine {
+ font-family: 'Courier Prime', monospace;
+ font-size: 0.48rem;
+ font-weight: 700;
+ color: #e0e0e0;
+ margin-top: 3px;
+ line-height: 1.1;
+ }
+ .pipe-outlet {
+ width: 20px;
+ height: 10px;
+ background: linear-gradient(90deg, #222 0%, #555 50%, #222 100%);
+ border-radius: 0 0 4px 4px;
+ }
+ .chain-container {
+ position: relative;
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ cursor: grab;
+ touch-action: none;
+ will-change: transform;
+ transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+ }
+ .chain-container:active {cursor: grabbing; }
+ .chain-links {
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ margin-top: -2px;
+ }
+ .link {
+ width: 10px;
+ height: 18px;
+ border: 3px solid var(--chain-metal);
+ border-radius: 6px;
+ margin-top: -7px;
+ box-shadow: inset 0 0 3px rgba(0,0,0,0.8);
+ }
+ .link:nth-child(even) {
+ width: 7px;
+ border-color: #4a4e54;
+ transform: scaleX(0.75);
+ }
+ .chain-handle {
+ width: 44px;
+ height: 44px;
+ border: 5px solid #b81d1d;
+ border-radius: 50%;
+ margin-top: -6px;
+ background: radial-gradient(circle at 30% 30%, #d42c2c 0%, #610c0c 100%);
+ box-shadow: inset 0 2px 4px rgba(255,255,255,0.4), 0 6px 12px rgba(0,0,0,0.7);
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ }
+ .handle-inner-ring {
+ width: 18px;
+ height: 18px;
+ border-radius: 50%;
+ background: #05070a;
+ }
+ .pull-tooltip {
+ position: absolute;
+ bottom: -24px;
+ white-space: nowrap;
+ font-family: 'Courier Prime', monospace;
+ font-size: 0.6rem;
+ color: #8a939e;
+ letter-spacing: 1px;
+ }
+ /* 2. WINDOW ASSEMBLY & VIEWPORT */
+ .window-assembly {
+ position: relative;
+ flex-grow: 1;
+ height: 480px;
+ background: var(--frame-rim);
+ border-radius: 32px;
+ padding: 10px;
+ box-shadow: inset 0 3px 6px rgba(255,255,255,0.2), 0 10px 25px rgba(0,0,0,0.7);
+ border: 3px solid #1a1c20;
+ }
+ .window-gasket {
+ position: relative;
+ width: 100%;
+ height: 100%;
+ background: var(--frame-rubber);
+ border-radius: 22px;
+ padding: 6px;
+ overflow: hidden;
+ }
+ .window-viewport {
+ position: relative;
+ width: 100%;
+ height: 100%;
+ border-radius: 16px;
+ overflow: hidden;
+ background: #020408;
+ }
+ .night-scene {
+ position: absolute;
+ inset: 0;
+ background: radial-gradient(circle at 50% 30%, #111d33 0%, #030710 100%);
+ }
+ .night-scene::before {
+ content: '';
+ position: absolute;
+ top: 15%;
+ left: 80%;
+ width: 40px;
+ height: 40px;
+ background: #fffdf0;
+ border-radius: 50%;
+ box-shadow: 0 0 25px rgba(255, 253, 240, 0.6);
+ }
+ .platform-lights-overlay {
+ position: absolute;
+ inset: 0;
+ background: linear-gradient(90deg, transparent 0%, rgba(255, 180, 50, 0.3) 50%, transparent 100%);
+ background-size: 200% 100%;
+ pointer-events: none;
+ opacity: 0;z-index: 2;
+ }
+ .platform-lights-overlay.active {
+ animation: platformFlash 2.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+ }
+ @keyframes platformFlash {
+ 0% {opacity: 0; background-position: 200% 0; }
+ 20% {opacity: 1; }
+ 60% {opacity: 0.8; background-position: 0% 0; }
+ 100% {opacity: 0; background-position: -200% 0; }
+ }
+ .station-overlay-wrapper {
+ position: absolute;
+ top: 16px;
+ left: 0;
+ right: 0;
+ display: flex;
+ justify-content: center;z-index: 5;
+ }
+ .ir-signboard {
+ position: relative;
+ width: 380px;
+ background: linear-gradient(180deg, var(--ir-yellow) 0%, var(--ir-yellow-dark) 100%);
+ border: 6px solid var(--ir-black);
+ border-radius: 10px;
+ box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8);
+ padding: 12px 16px 8px 16px;
+ color: var(--ir-black);
+ text-align: center;
+ will-change: transform, opacity, filter;
+ }
+ .ir-signboard.slide-out {
+ transform: translateX(-120%) skewX(-8deg) scale(0.9);
+ filter: blur(8px);
+ opacity: 0;
+ transition: all 0.4s ease-in;
+ }
+ .ir-signboard.slide-in {
+ animation: signboardArrive 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+ }
+ @keyframes signboardArrive {
+ 0% {transform: translateX(120%) skewX(8deg) scale(0.9);filter: blur(8px);opacity: 0; }
+ 100% {transform: translateX(0) skewX(0deg) scale(1);filter: blur(0px);opacity: 1; }
+ }
+ .station-hindi {
+ font-family: 'Hind', sans-serif;
+ font-size: 1.5rem;
+ font-weight: 700;
+ line-height: 1;
+ }
+ .station-english {
+ font-family: 'Montserrat', sans-serif;
+ font-size: 1.7rem;
+ font-weight: 900;
+ letter-spacing: 2px;
+ text-transform: uppercase;
+ line-height: 1;
+ margin-top: 2px;
+ }
+ .station-footer {
+ display: flex;
+ justify-content: space-between;
+ margin-top: 8px;
+ padding-top: 4px;
+ border-top: 1.5px solid var(--ir-black);
+ font-family: 'Montserrat', sans-serif;
+ font-size: 0.52rem;
+ font-weight: 800;
+ }
+ .safety-bars-grid {
+ position: absolute;
+ inset: 0;
+ display: flex;
+ flex-direction: column;
+ justify-content: space-evenly;
+ padding: 20px 0;
+ pointer-events: none;z-index: 3;
+ }
+ .safety-bar {
+ width: 100%;
+ height: 12px;
+ background: linear-gradient(180deg, #2a2d32 0%, var(--metal-bar-light) 40%, var(--metal-bar-dark) 70%, #111215 100%);
+ box-shadow: 0 4px 8px rgba(0,0,0,0.7);
+ }
+ .glass-shutter {
+ position: absolute;
+ top: 0;
+ left: 0;
+ right: 0;
+ height: 65%;
+ background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 50%, rgba(0,0,0,0.3) 100%);
+ backdrop-filter: blur(1px);
+ border-bottom: 4px solid #222;z-index: 4;transition: height 0.1s ease-out;
+ }
+ .latch-assembly {
+ position: absolute;
+ bottom: 0;
+ width: 100%;
+ height: 32px;
+ background: linear-gradient(180deg, #444950 0%, #1f2226 100%);
+ border-top: 2px solid #666;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ padding: 0 15px;
+ }
+ .latch-slider {
+ -webkit-appearance: none;
+ appearance: none;
+ width: 180px;
+ height: 14px;
+ background: #111;
+ border-radius: 4px;
+ outline: none;
+ border: 1px solid #555;
+ }
+ .latch-slider::-webkit-slider-thumb {
+ -webkit-appearance: none;
+ appearance: none;
+ width: 24px;
+ height: 20px;
+ background: linear-gradient(180deg, #e6c86e 0%, #d4af37 50%, #7a5c10 100%);
+ border: 1.5px solid #111;
+ border-radius: 3px;
+ cursor: ns-resize;
+ }
+ /* 3. CONTROL PANEL */
+ .controls-panel {
+ margin-top: 20px;
+ width: 920px;
+ max-width: 95vw;
+ background: #0d131a;
+ border: 1px solid #1e293b;
+ border-radius: 12px;
+ padding: 16px 24px;
+ display: flex;
+ flex-wrap: wrap;
+ align-items: center;
+ justify-content: space-between;
+ gap: 15px;
+ }
+ .control-group {
+ display: flex;
+ align-items: center;
+ gap: 12px;
+ }
+ .btn {
+ background: #16222f;
+ color: #f8be00;
+ border: 1.5px solid #f8be00;
+ padding: 8px 16px;
+ border-radius: 6px;
+ font-weight: bold;
+ cursor: pointer;
+ font-family: inherit;
+ transition: all 0.2s ease;
+ }
+ .btn:hover {
+ background: #f8be00;
+ color: #0d131a;
+ }
+ .slider-label {
+ font-size: 0.75rem;
+ font-weight: 700;
+ color: #8a939e;
+ text-transform: uppercase;
+ letter-spacing: 0.5px;
+ }
+ input[type="range"].control-slider {
+ width: 100px;
+ accent-color: #f8be00;
+ }
+ .switch-label {
+ display: flex;
+ align-items: center;
+ gap: 8px;
+ font-size: 0.75rem;
+ font-weight: 700;
+ color: #8a939e;
+ cursor: pointer;
+ }
+ /* 4. CUSTOM SONG INPUT MODAL */
+ .modal-overlay {
+ position: fixed;
+ inset: 0;
+ background: rgba(0, 0, 0, 0.85);
+ backdrop-filter: blur(4px);
+ display: flex;
+ align-items: center;
+ justify-content: center;z-index: 100;opacity: 0;pointer-events: none;transition: opacity 0.25s ease;
+ }
+ .modal-overlay.active {
+ opacity: 1;
+ pointer-events: auto;
+ }
+ .modal-card {
+ background: #0d131a;
+ border: 2px solid var(--ir-yellow);
+ border-radius: 12px;
+ width: 440px;
+ max-width: 90vw;
+ padding: 24px;
+ box-shadow: 0 15px 40px rgba(0, 0, 0, 0.9);
+ color: #e0e6ed;
+ }
+ .modal-title {
+ font-family: 'Montserrat', sans-serif;
+ font-size: 1.2rem;
+ font-weight: 800;
+ color: var(--ir-yellow);
+ margin-bottom: 8px;
+ text-transform: uppercase;
+ }
+ .modal-sub {
+ font-size: 0.8rem;
+ color: #8a939e;
+ margin-bottom: 16px;
+ line-height: 1.4;
+ }
+ .modal-input {
+ width: 100%;
+ background: #16222f;
+ border: 1px solid #334155;
+ color: #fff;
+ padding: 10px 14px;
+ border-radius: 6px;
+ font-family: inherit;
+ font-size: 0.9rem;
+ outline: none;
+ margin-bottom: 18px;
+ }
+ .modal-input:focus {
+ border-color: var(--ir-yellow);
+ }
+ .modal-actions {
+ display: flex;
+ justify-content: flex-end;
+ gap: 10px;
+ }
+ @media (max-width: 768px) {
+ body {padding: 10px 0; }
+ .sleeper-wall {
+ flex-direction: column;
+ padding: 20px 14px;
+ gap: 18px;
+ }
+ .coach-stencil {
+ top: 6px;
+ left: 14px;
+ font-size: 0.7rem;
+ }
+ .alarm-assembly {
+ width: 100%;
+ flex-direction: row;
+ justify-content: space-around;
+ align-items: center;
+ margin-top: 15px;
+ }
+ .pipe-outlet {display: none; }
+ .alarm-box {width: 160px; }
+ .window-assembly {
+ width: 100%;
+ height: 380px;
+ }
+ .ir-signboard {
+ width: 90%;
+ padding: 8px 10px;
+ }
+ .station-hindi {font-size: 1.2rem; }
+ .station-english {font-size: 1.3rem; }
+ .controls-panel {
+ flex-direction: column;
+ align-items: stretch;
+ text-align: center;
+ padding: 16px;
+ }
+ .control-group {
+ justify-content: center;
+ flex-wrap: wrap;
+ }
+ }
+ /* ============================================================
+   VN signature: maximalist ambience layer
+   Crafted by Vivek Nair (VN) — https://github.com/vivekn4
+   Starfield canvas, glowing signboard, animated title glow,
+   SFX mute toggle. Respects prefers-reduced-motion.
+   ============================================================ */
+#vn-stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .8; }
+body { position: relative; }
+body > *:not(#vn-stars):not(script) { position: relative; z-index: 1; }
+#signboard {
+  text-shadow: 0 0 18px rgba(248,190,0,.75), 0 0 46px rgba(248,190,0,.35);
+  animation: vn-signpulse 4.2s ease-in-out infinite;
+}
+@keyframes vn-signpulse {
+  0%,100% { text-shadow: 0 0 18px rgba(248,190,0,.75), 0 0 46px rgba(248,190,0,.35); }
+  50%     { text-shadow: 0 0 26px rgba(248,190,0,.95), 0 0 70px rgba(248,190,0,.5); }
+}
+.btn {
+  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+}
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(248,190,0,.35);
+  filter: brightness(1.08);
+}
+.btn:active { transform: translateY(1px) scale(.98); }
+.vn-footer {
+  position: relative; z-index: 1;
+  text-align: center; padding: 18px 12px 26px;
+  font-family: 'Hind', sans-serif; font-size: 12.5px; letter-spacing: .12em;
+  color: rgba(230,235,245,.55); text-transform: uppercase;
+}
+#vn-sfx-toggle {
+  position: fixed; right: 18px; bottom: 18px; z-index: 60;
+  width: 46px; height: 46px; border-radius: 50%; cursor: pointer; font-size: 21px;
+  border: 2px solid rgba(248,190,0,.55); color: #fff;
+  background: rgba(16,36,59,.9); backdrop-filter: blur(6px);
+  box-shadow: 0 4px 18px rgba(248,190,0,.30);
+  transition: transform .18s ease;
+}
+#vn-sfx-toggle:hover { transform: scale(1.1); }
+@media (prefers-reduced-motion: reduce) {
+  #signboard { animation: none; }
+  #vn-stars { display: none; }
+  .btn { transition: none; }
+  * { animation-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+ <!--SLEEPER COACH WALL -->
+ <div class="sleeper-wall">
+ <div class="coach-stencil">S-4 | SLEEPER CLASS • SLEEPERCLASS.LIVE</div>
+ <!--EMERGENCY CHAIN -->
+ <div class="alarm-assembly">
+ <div class="alarm-box" id="alarmBox">
+ <div class="stencil-hi">गाड़ी रोकने के लिए जंजीर खींचें</div>
+ <div class="stencil-en">PULL CHAIN TO STOP TRAIN</div>
+ <div class="stencil-fine">PENALTY FOR IMPROPER USE<br>₹1000 OR 3 MONTHS IMPRISONMENT</div>
+ </div>
+ <div class="pipe-outlet"></div>
+ <div class="chain-container" id="chainContainer">
+ <div class="chain-links">
+ <div class="link"></div><div class="link"></div><div class="link"></div><div class="link"></div>
+ <div class="link"></div><div class="link"></div><div class="link"></div><div class="link"></div>
+ </div>
+ <div class="chain-handle"><div class="handle-inner-ring"></div></div>
+ <div class="pull-tooltip" id="pullTooltip">PULL CHAIN</div>
+ </div>
+ </div>
+ <!--WINDOW ASSEMBLY -->
+ <div class="window-assembly">
+ <div class="window-gasket">
+ <div class="window-viewport" id="viewport">
+ <div class="night-scene"></div>
+ <div class="platform-lights-overlay" id="platformOverlay"></div>
+ <!--Station Signboard Overlay -->
+ <div class="station-overlay-wrapper">
+ <div class="ir-signboard" id="signboard">
+ <div class="station-hindi" id="stationHindi">नागपुर जंक्शन</div>
+ <div class="station-english" id="stationEnglish">NAGPUR JN</div>
+ <div class="station-footer">
+ <span id="stationElevation">ELEVATION : 312.5 M</span>
+ <span id="stationCode">CODE: NGP</span>
+ </div>
+ </div>
+ </div>
+ <!--Safety Bars -->
+ <div class="safety-bars-grid">
+ <div class="safety-bar"></div><div class="safety-bar"></div>
+ <div class="safety-bar"></div><div class="safety-bar"></div>
+ </div>
+ <!--Glass Shutter -->
+ <div class="glass-shutter" id="glassShutter">
+ <div class="latch-assembly">
+ <input type="range" min="0" max="100" value="65" class="latch-slider" id="windowLatch" title="Slide Window Glass" />
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
+ <!--CONTROL PANEL -->
+ <div class="controls-panel">
+ <div class="control-group">
+ <button class="btn" id="startBtn">▶ START JOURNEY</button>
+ <button class="btn" id="prevStationBtn">◄ PREV</button>
+ <button class="btn" id="nextStationBtn">NEXT STATION ►</button>
+ <button class="btn" id="openCustomModalBtn">➕ ADD YOUR SONG</button>
+ </div>
+ <div class="control-group">
+ <span class="slider-label">Music</span>
+ <input type="range" min="0" max="1" step="0.05" value="0.8" class="control-slider" id="musicVolSlider">
+ <span class="slider-label">Train Noise</span>
+ <input type="range" min="0" max="1" step="0.05" value="0.35" class="control-slider" id="ambientVolSlider">
+ </div>
+ <div class="control-group">
+ <label class="switch-label">
+ <input type="checkbox" id="muffleRadioToggle">
+ <span>📻 Muffled Earphone Effect</span>
+ </label>
+ </div>
+ </div>
+ <!--CUSTOM SONG MODAL -->
+ <div class="modal-overlay" id="customModal">
+ <div class="modal-card">
+ <div class="modal-title">Play Custom Music</div>
+ <div class="modal-sub">Paste any YouTube video link or Video ID to play your own track through the sleeper coach radio.</div>
+ <input type="text" class="modal-input" id="ytUrlInput" placeholder=https://www.youtube.com/watch?v=... />
+ <div class="modal-actions">
+ <button class="btn" id="closeModalBtn" style="border-color:#555; color:#aaa;">CANCEL</button>
+ <button class="btn" id="loadCustomSongBtn">PLAY TRACK</button>
+ </div>
+ </div>
+ </div>
+ <!--Hidden YouTube Player Container -->
+ <div style="position:absolute; top:-9999px; left:-9999px; opacity:0; pointer-events:none;">
+ <div id="youtube-player"></div>
+ </div>
+ <script>
+ // 1. STATION DATABASE
+ const STATIONS = [
+ {
+ Hindi: "नागपुर जंक्शन", english: "NAGPUR JN",
+ Elevation: "ELEVATION : 312.5 M", code: "CODE: NGP",
+ youtubeId: "0aUcvA3-1k4"
+ },
+ {
+ Hindi: "इटारसी जंक्शन", english: "ITARSI JN",
+ Elevation: "ELEVATION : 330.0 M", code: "CODE: ET",
+ youtubeId: "d113kM171p4"
+ },
+ {
+ Hindi: "भोपाल जंक्शन", english: "BHOPAL JN",
+ Elevation: "ELEVATION : 505.2 M", code: "CODE: BPL",
+ youtubeId: "L8S4U3uE_6I"
+ },
+ {
+ Hindi: "वाराणसी जंक्शन", english: "VARANASI JN",
+ Elevation: "ELEVATION : 81.5 M", code: "CODE: BSB",
+ youtubeId: "Y19q1xK4K8M"
+ }
+ ];
+ let currentStationIdx = 0;
+ let ytPlayer = null;
+ let isPlaying = false;
+ function safeYTCall(fn) {
+ if (ytPlayer && typeof ytPlayer.getPlayerState === 'function') {
+ fn();
+ }
+ }
+ function extractYouTubeId(url) {
+ const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+ const match = url.match(regExp);
+ return (match && match[2].length === 11) ? match[2] : url.trim();
+ }
+ // 2. WEB AUDIO ENGINE
+ class SleeperAudioEngine {
+ constructor() {
+ this.ctx = null;
+ this.isInit = false;
+ this.masterGain = null;
+ this.ambientGain = null;
+ this.rumbleNode = null;
+ }
+ init() {
+ if (this.isInit) return;
+ const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+ this.ctx = new AudioContextClass();
+ this.masterGain = this.ctx.createGain();
+ this.ambientGain = this.ctx.createGain();
+ this.ambientGain.connect(this.masterGain);
+ this.masterGain.connect(this.ctx.destination);
+ if (this.ctx.state === 'suspended') this.ctx.resume();
+ this.isInit = true;
+ }
+ setAmbientVolume(vol) {
+ if (this.ambientGain && this.ctx) {
+ this.ambientGain.gain.setTargetAtTime(vol, this.ctx.currentTime, 0.05);
+ }
+ }
+ startProceduralTrainRumble(vol = 0.35) {
+ if (!this.isInit) this.init();
+ if (this.rumbleNode) {
+ try { this.rumbleNode.stop(); this.rumbleNode.disconnect(); } catch(e) {}
+ }
+ const bufferSize = this.ctx.sampleRate * 2;
+ const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+ const data = buffer.getChannelData(0);
+ let lastOut = 0.0;
+ for (let i = 0; i < bufferSize; i++) {
+ const white = Math.random() * 2 - 1;
+ Data[i] = (lastOut + (0.02 * white)) / 1.02;
+ lastOut = data[i];
+ data[i] *= 3.5;
+ }
+ this.rumbleNode = this.ctx.createBufferSource();
+ this.rumbleNode.buffer = buffer;
+ this.rumbleNode.loop = true;
+ const filter = this.ctx.createBiquadFilter();
+ Filter.type = 'lowpass';
+ Filter.frequency.value = 220;
+ this.rumbleNode.connect(filter);
+ Filter.connect(this.ambientGain);
+ this.rumbleNode.start();
+ this.setAmbientVolume(vol);
+ }
+ playAirBrakeHiss() {
+ if (!this.isInit) this.init();
+ if (!this.ctx) return;
+ const bufferSize = this.ctx.sampleRate * 1.5;
+ const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+ const data = buffer.getChannelData(0);
+ for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+ const whiteNoise = this.ctx.createBufferSource();
+ whiteNoise.buffer = buffer;
+ const filter = this.ctx.createBiquadFilter();
+ filter.type = 'highpass';
+ filter.frequency.value = 1000;
+ const gain = this.ctx.createGain();
+ gain.gain.setValueAtTime(0.8, this.ctx.currentTime);
+ gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 1.2);
+ whiteNoise.connect(filter);
+ filter.connect(gain);
+ gain.connect(this.masterGain);
+ whiteNoise.start();
+ }
+ playStationChime() {
+ if (!this.isInit) this.init();
+ if (!this.ctx) return;
+ const freqs = [523.25, 659.25, 783.99];
+ freqs.forEach((f, i) => {
+ const osc = this.ctx.createOscillator();
+ const gain = this.ctx.createGain();
+ osc.frequency.value = f;
+ gain.gain.setValueAtTime(0, this.ctx.currentTime + I * 0.15);
+ gain.gain.linearRampToValueAtTime(0.3, this.ctx.currentTime + I * 0.15 + 0.05);
+ gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + I * 0.15 + 0.8);
+ osc.connect(gain);
+ gain.connect(this.masterGain);
+ osc.start(this.ctx.currentTime + I * 0.15);
+ osc.stop(this.ctx.currentTime + I * 0.15 + 0.8);
+ });
+ }
+ }
+ const audioEngine = new SleeperAudioEngine();
+ // 3. YOUTUBE IFRAME SETUP
+ function initYouTube() {
+ const tag = document.createElement('script');
+ tag.src = 'https://www.youtube.com/iframe_api';
+ Document.body.appendChild(tag);
+ Window.onYouTubeIframeAPIReady = () => {
+ ytPlayer = new YT.Player('youtube-player', {
+ height: '180', width: '320',
+ videoId: STATIONS[0].youtubeId,
+ playerVars: { 'playsinline': 1, 'controls': 0, 'disablekb': 1 },
+ events: {
+ 'onReady': () => console.log("YouTube API Ready")
+ }
+ });
+ };
+ }
+ initYouTube();
+ // 4. STATION TRANSITION CONTROLLER
+ async function changeStation(dir) {
+ audioEngine.playAirBrakeHiss();
+ document.getElementById('platformOverlay').classList.add('active');
+ const signboard = document.getElementById('signboard');
+ signboard.classList.add('slide-out');
+ setTimeout(() => {
+ currentStationIdx = (currentStationIdx + dir + STATIONS.length) % STATIONS.length;
+ const st = STATIONS[currentStationIdx];
+ document.getElementById('stationHindi').textContent = st.hindi;
+ document.getElementById('stationEnglish').textContent = st.english;
+ document.getElementById('stationElevation').textContent = st.elevation;
+ document.getElementById('stationCode').textContent = st.code;
+ safeYTCall(() => {
+ ytPlayer.loadVideoById(st.youtubeId);
+ isPlaying = true;
+ document.getElementById('startBtn').textContent = '⏸ PAUSE';
+ });
+ audioEngine.playStationChime();
+ signboard.classList.remove('slide-out');
+ signboard.classList.add('slide-in');
+ }, 500);
+ setTimeout(() => {
+ document.getElementById('platformOverlay').classList.remove('active');
+ signboard.classList.remove('slide-in');
+ }, 2000);
+ }
+ // 5. EVENT LISTENERS
+ document.getElementById('startBtn').addEventListener('click', () => {
+ audioEngine.init();
+ audioEngine.startProceduralTrainRumble();
+ safeYTCall(() => {
+ if (isPlaying) {
+ ytPlayer.pauseVideo();
+ document.getElementById('startBtn').textContent = '▶ RESUME JOURNEY';
+ } else {
+ ytPlayer.playVideo();
+ document.getElementById('startBtn').textContent = '⏸ PAUSE';
+ }
+ isPlaying = !isPlaying;
+ });
+ });
+ document.getElementById('nextStationBtn').addEventListener('click', () => changeStation(1));
+ document.getElementById('prevStationBtn').addEventListener('click', () => changeStation(-1));
+ document.getElementById('windowLatch').addEventListener('input', e => {
+ document.getElementById('glassShutter').style.height = `${e.target.value}%`;
+ });
+ document.getElementById('ambientVolSlider').addEventListener('input', e => {
+ audioEngine.setAmbientVolume(parseFloat(e.target.value));
+ });
+ document.getElementById('musicVolSlider').addEventListener('input', e => {
+ safeYTCall(() => {
+ ytPlayer.setVolume(parseFloat(e.target.value) * 100);
+ });
+ });
+ // Custom Song Modal Listeners
+ const customModal = document.getElementById('customModal');
+ document.getElementById('openCustomModalBtn').addEventListener('click', () => {
+ customModal.classList.add('active');
+ });
+ document.getElementById('closeModalBtn').addEventListener('click', () => {
+ customModal.classList.remove('active');
+ });
+ document.getElementById('loadCustomSongBtn').addEventListener('click', () => {
+ const rawInput = document.getElementById('ytUrlInput').value;
+ if (!rawInput) return;
+ const videoId = extractYouTubeId(rawInput);
+ audioEngine.init();
+ audioEngine.startProceduralTrainRumble();
+ document.getElementById('stationHindi').textContent = "विशेष यात्री";
+ document.getElementById('stationEnglish').textContent = "CUSTOM TRACK";
+ document.getElementById('stationCode').textContent = "CODE: USER";
+ safeYTCall(() => {
+ ytPlayer.loadVideoById(videoId);
+ isPlaying = true;
+ document.getElementById('startBtn').textContent = '⏸ PAUSE';
+ });
+ customModal.classList.remove('active');
+ document.getElementById('ytUrlInput').value = '';
+ });
+ // 6. EMERGENCY CHAIN PULL
+ const chainContainer = document.getElementById('chainContainer');
+ const alarmBox = document.getElementById('alarmBox');
+ let startY = 0, currentY = 0, isDragging = false;
+ chainContainer.addEventListener('pointerdown', e => {
+ isDragging = true;
+ startY = e.clientY;
+ chainContainer.style.transition = 'none';
+ chainContainer.setPointerCapture(e.pointerId);
+ });
+ chainContainer.addEventListener('pointermove', e => {
+ if (!isDragging) return;
+ const deltaY = e.clientY - startY;
+ if (deltaY > 0) {
+ currentY = deltaY > 70 ? 70 + (deltaY - 70) * 0.2 : deltaY;
+ chainContainer.style.transform = `translateY(${currentY}px)`;
+ }
+ });
+ chainContainer.addEventListener('pointerup', () => {
+ if (!isDragging) return;
+ isDragging = false;
+ chainContainer.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.4)';
+ if (currentY >= 70) {
+ audioEngine.playAirBrakeHiss();
+ safeYTCall(() => ytPlayer.pauseVideo());
+ isPlaying = false;
+ document.getElementById('startBtn').textContent = '▶ RESUME JOURNEY';
+ alarmBox.classList.add('pulled');
+ document.getElementById('pullTooltip').textContent = "BRAKE ACTIVE";
+ setTimeout(() => {
+ chainContainer.style.transform = 'translateY(0px)';
+ alarmBox.classList.remove('pulled');
+ document.getElementById('pullTooltip').textContent = "PULL CHAIN";
+ }, 3000);
+ } else {
+ chainContainer.style.transform = 'translateY(0px)';
+ }
+ currentY = 0;
+ });
+ </script>
+ <canvas id="vn-stars" aria-hidden="true"></canvas>
+ <div class="vn-footer">Designed &amp; built by VN · SleeperClass.live</div>
+ <button id="vn-sfx-toggle" aria-label="Toggle UI sound effects" title="Toggle UI sounds">🔊</button>
+ <script>
+ /* VN signature: UI SFX layer + starfield (no audio files) — https://github.com/vivekn4 */
+ (function () {
+   "use strict";
+   var MUTE_KEY = "vn_sfx_muted_sleeper", muted = false, ctx = null;
+   try { muted = localStorage.getItem(MUTE_KEY) === "1"; } catch (e) {}
+   function ac() {
+     if (!ctx) { var AC = window.AudioContext || window.webkitAudioContext; if (AC) ctx = new AC(); }
+     if (ctx && ctx.state === "suspended") ctx.resume();
+     return ctx;
+   }
+   function tone(f0, f1, dur, vol, type) {
+     if (muted) return; var a = ac(); if (!a) return;
+     var t = a.currentTime, o = a.createOscillator(), g = a.createGain();
+     o.type = type || "sine"; o.frequency.setValueAtTime(f0, t);
+     o.frequency.exponentialRampToValueAtTime(Math.max(f1, 1), t + dur);
+     g.gain.setValueAtTime(0.0001, t);
+     g.gain.exponentialRampToValueAtTime(vol, t + 0.015);
+     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+     o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + 0.05);
+   }
+   window.VN_SFX = {
+     blip: function () { tone(520, 760, 0.1, 0.045); },
+     tick: function () { tone(1500, 1200, 0.045, 0.022); },
+     chime: function () { tone(659.25, 659.25, 0.45, 0.045); setTimeout(function(){ tone(987.77, 987.77, 0.6, 0.035); }, 110); },
+     toggle: function () {
+       muted = !muted;
+       try { localStorage.setItem(MUTE_KEY, muted ? "1" : "0"); } catch (e) {}
+       return muted;
+     },
+     isMuted: function () { return muted; }
+   };
+   // non-invasive: blip on any button press, tick on slider input
+   document.addEventListener("click", function (ev) {
+     if (ev.target.closest && ev.target.closest("button")) window.VN_SFX.blip();
+   });
+   document.querySelectorAll('input[type="range"]').forEach(function (el) {
+     el.addEventListener("change", function () { window.VN_SFX.chime(); });
+   });
+   var btn = document.getElementById("vn-sfx-toggle");
+   function paint() {
+     var m = window.VN_SFX.isMuted();
+     btn.textContent = m ? "🔇" : "🔊";
+     btn.setAttribute("aria-pressed", m ? "true" : "false");
+   }
+   btn.addEventListener("click", function (ev) {
+     ev.stopPropagation();
+     window.VN_SFX.toggle(); paint();
+     if (!window.VN_SFX.isMuted()) window.VN_SFX.blip();
+   });
+   paint();
+ })();
+ </script>
+ <script>
+ /* VN signature: night-sky starfield */
+ (function () {
+   "use strict";
+   var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+   var cv = document.getElementById("vn-stars");
+   if (!cv) return;
+   var cx = cv.getContext("2d"), W, H, stars = [];
+   function resize() { W = cv.width = innerWidth; H = cv.height = innerHeight; }
+   function init() {
+     resize(); stars = [];
+     var n = Math.min(110, Math.floor(W * H / 16000));
+     for (var i = 0; i < n; i++) stars.push({
+       x: Math.random() * W, y: Math.random() * H * 0.7,
+       r: 0.6 + Math.random() * 1.6, tw: Math.random() * 6.28,
+       ts: 0.008 + Math.random() * 0.02, a: 0.25 + Math.random() * 0.5
+     });
+   }
+   function frame() {
+     cx.clearRect(0, 0, W, H);
+     for (var i = 0; i < stars.length; i++) {
+       var s = stars[i]; s.tw += s.ts;
+       var a = s.a * (0.55 + 0.45 * Math.sin(s.tw));
+       cx.beginPath(); cx.arc(s.x, s.y, s.r, 0, 6.283);
+       cx.fillStyle = "rgba(220,232,255," + a.toFixed(3) + ")"; cx.fill();
+     }
+     if (!reduced) requestAnimationFrame(frame);
+   }
+   addEventListener("resize", resize);
+   init(); frame();
+ })();
+ </script>
+</body>
+</html>
