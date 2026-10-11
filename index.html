@@ -623,7 +623,7 @@ body > *:not(#vn-stars):not(script) { position: relative; z-index: 1; }
  <button class="btn" id="startBtn">▶ START JOURNEY</button>
  <button class="btn" id="prevStationBtn">◄ PREV</button>
  <button class="btn" id="nextStationBtn">NEXT STATION ►</button>
- <button class="btn" id="openCustomModalBtn">➕ ADD YOUR SONG</button>
+ <span class="btn" id="nowPlaying" style="cursor:default; border-color:#8a6d3b; color:#ffcf7d;">🎵 Chaiyya Chaiyya · Dil Se (1998)</span>
  </div>
  <div class="control-group">
  <span class="slider-label">Music</span>
@@ -638,18 +638,7 @@ body > *:not(#vn-stars):not(script) { position: relative; z-index: 1; }
  </label>
  </div>
  </div>
- <!--CUSTOM SONG MODAL -->
- <div class="modal-overlay" id="customModal">
- <div class="modal-card">
- <div class="modal-title">Play Custom Music</div>
- <div class="modal-sub">Paste any YouTube video link or Video ID to play your own track through the sleeper coach radio.</div>
- <input type="text" class="modal-input" id="ytUrlInput" placeholder=https://www.youtube.com/watch?v=... />
- <div class="modal-actions">
- <button class="btn" id="closeModalBtn" style="border-color:#555; color:#aaa;">CANCEL</button>
- <button class="btn" id="loadCustomSongBtn">PLAY TRACK</button>
- </div>
- </div>
- </div>
+
  <!--Hidden YouTube Player Container -->
  <div style="position:absolute; top:-9999px; left:-9999px; opacity:0; pointer-events:none;">
  <div id="youtube-player"></div>
@@ -658,24 +647,24 @@ body > *:not(#vn-stars):not(script) { position: relative; z-index: 1; }
  // 1. STATION DATABASE
  const STATIONS = [
  {
- Hindi: "नागपुर जंक्शन", english: "NAGPUR JN",
- Elevation: "ELEVATION : 312.5 M", code: "CODE: NGP",
- youtubeId: "0aUcvA3-1k4"
+ hindi: "नागपुर जंक्शन", english: "NAGPUR JN",
+ elevation: "ELEVATION : 312.5 M", code: "CODE: NGP",
+ youtubeId: "T8_k-g1NQgA", song: "Chaiyya Chaiyya · Dil Se (1998)"
  },
  {
- Hindi: "इटारसी जंक्शन", english: "ITARSI JN",
- Elevation: "ELEVATION : 330.0 M", code: "CODE: ET",
- youtubeId: "d113kM171p4"
+ hindi: "इटारसी जंक्शन", english: "ITARSI JN",
+ elevation: "ELEVATION : 330.0 M", code: "CODE: ET",
+ youtubeId: "h2-VqtbEIRQ", song: "Kasto Mazza · Parineeta (2005)"
  },
  {
- Hindi: "भोपाल जंक्शन", english: "BHOPAL JN",
- Elevation: "ELEVATION : 505.2 M", code: "CODE: BPL",
- youtubeId: "L8S4U3uE_6I"
+ hindi: "भोपाल जंक्शन", english: "BHOPAL JN",
+ elevation: "ELEVATION : 505.2 M", code: "CODE: BPL",
+ youtubeId: "H3apUfr29YQ", song: "Dhadak Dhadak · Bunty Aur Babli (2005)"
  },
  {
- Hindi: "वाराणसी जंक्शन", english: "VARANASI JN",
- Elevation: "ELEVATION : 81.5 M", code: "CODE: BSB",
- youtubeId: "Y19q1xK4K8M"
+ hindi: "वाराणसी जंक्शन", english: "VARANASI JN",
+ elevation: "ELEVATION : 81.5 M", code: "CODE: BSB",
+ youtubeId: "eEeX2QMlSlo", song: "Yun Hi Chala Chal · Swades (2004)"
  }
  ];
  let currentStationIdx = 0;
@@ -686,11 +675,7 @@ body > *:not(#vn-stars):not(script) { position: relative; z-index: 1; }
  fn();
  }
  }
- function extractYouTubeId(url) {
- const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
- const match = url.match(regExp);
- return (match && match[2].length === 11) ? match[2] : url.trim();
- }
+
  // 2. WEB AUDIO ENGINE
  class SleeperAudioEngine {
  constructor() {
@@ -785,8 +770,8 @@ body > *:not(#vn-stars):not(script) { position: relative; z-index: 1; }
  function initYouTube() {
  const tag = document.createElement('script');
  tag.src = 'https://www.youtube.com/iframe_api';
- Document.body.appendChild(tag);
- Window.onYouTubeIframeAPIReady = () => {
+ document.body.appendChild(tag);
+ window.onYouTubeIframeAPIReady = () => {
  ytPlayer = new YT.Player('youtube-player', {
  height: '180', width: '320',
  videoId: STATIONS[0].youtubeId,
@@ -811,6 +796,7 @@ body > *:not(#vn-stars):not(script) { position: relative; z-index: 1; }
  document.getElementById('stationEnglish').textContent = st.english;
  document.getElementById('stationElevation').textContent = st.elevation;
  document.getElementById('stationCode').textContent = st.code;
+ document.getElementById('nowPlaying').textContent = '🎵 ' + st.song;
  safeYTCall(() => {
  ytPlayer.loadVideoById(st.youtubeId);
  isPlaying = true;
@@ -853,31 +839,7 @@ body > *:not(#vn-stars):not(script) { position: relative; z-index: 1; }
  ytPlayer.setVolume(parseFloat(e.target.value) * 100);
  });
  });
- // Custom Song Modal Listeners
- const customModal = document.getElementById('customModal');
- document.getElementById('openCustomModalBtn').addEventListener('click', () => {
- customModal.classList.add('active');
- });
- document.getElementById('closeModalBtn').addEventListener('click', () => {
- customModal.classList.remove('active');
- });
- document.getElementById('loadCustomSongBtn').addEventListener('click', () => {
- const rawInput = document.getElementById('ytUrlInput').value;
- if (!rawInput) return;
- const videoId = extractYouTubeId(rawInput);
- audioEngine.init();
- audioEngine.startProceduralTrainRumble();
- document.getElementById('stationHindi').textContent = "विशेष यात्री";
- document.getElementById('stationEnglish').textContent = "CUSTOM TRACK";
- document.getElementById('stationCode').textContent = "CODE: USER";
- safeYTCall(() => {
- ytPlayer.loadVideoById(videoId);
- isPlaying = true;
- document.getElementById('startBtn').textContent = '⏸ PAUSE';
- });
- customModal.classList.remove('active');
- document.getElementById('ytUrlInput').value = '';
- });
+
  // 6. EMERGENCY CHAIN PULL
  const chainContainer = document.getElementById('chainContainer');
  const alarmBox = document.getElementById('alarmBox');
