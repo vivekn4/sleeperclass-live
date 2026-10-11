@@ -12,7 +12,7 @@
 ![HTML](https://img.shields.io/badge/type-single%20HTML%20file-orange.svg)
 ![No build](https://img.shields.io/badge/build-none%20needed-brightgreen.svg)
 
-A late-night Indian Railways sleeper-coach experience in a single HTML file. Settle into your berth as the train rumbles through the dark — passing stations glow by the window, you can pull the emergency chain (gently), tune the radio, and add your own songs.
+A late-night Indian Railways sleeper-coach experience in a single HTML file. Settle into your berth as the train rumbles through the dark — passing stations glow by the window, you can pull the emergency chain (gently), and ride to a fixed radio of evergreen Bollywood train songs.
 
 ## Features
 
@@ -20,7 +20,7 @@ A late-night Indian Railways sleeper-coach experience in a single HTML file. Set
 - 🌃 **Passing stations** — glowing signboards roll by (Nagpur, Itarsi, Bhopal, Varanasi…)
 - 🔊 **Procedural audio** — WebAudio-synthesized train rumble, ambient loops, and UI chimes (no audio files)
 - ⛓️ **Emergency chain** — pull it and feel the brake (with a 3-second reset, don't worry)
-- 📻 **Custom songs** — paste any YouTube URL to play your own track on the journey
+- 📻 **Evergreen radio** — a fixed playlist of 90s & 2000s Bollywood train classics: Chaiyya Chaiyya (Dil Se), Kasto Mazza (Parineeta), Dhadak Dhadak (Bunty Aur Babli), Yun Hi Chala Chal (Swades) — one per station
 - 🎚️ **Mixing controls** — separate music / train-noise volume sliders, window latch, radio muffle
 - ✨ **Maximalist night sky** — twinkling starfield, glowing signboard pulse, hover-glow controls
 - ♿ **Reduced-motion respected** — calm static mode when your OS prefers it
