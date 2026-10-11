@@ -1,5 +1,8 @@
 # SleeperClass.live 🚂🌙
 
+## Screenshot
+
+![Screenshot](assets/screenshot.png)
 ![header](https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12,20&height=170&section=header&text=SleeperClass.live&fontSize=54&fontColor=ffffff&animation=fadeIn)
 
 ![SleeperClass banner — lo-fi night train](assets/banner.png)
@@ -10,10 +13,6 @@
 ![No build](https://img.shields.io/badge/build-none%20needed-brightgreen.svg)
 
 A late-night Indian Railways sleeper-coach experience in a single HTML file. Settle into your berth as the train rumbles through the dark — passing stations glow by the window, you can pull the emergency chain (gently), tune the radio, and add your own songs.
-
-## Screenshots
-
-> 📸 Screenshots coming soon — open `index.html` in any browser, hit **Start Journey**, and watch the night roll by.
 
 ## Features
 
