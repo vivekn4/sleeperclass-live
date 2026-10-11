@@ -562,6 +562,7 @@ body > *:not(#vn-stars):not(script) { position: relative; z-index: 1; }
   .btn { transition: none; }
   * { animation-duration: .01ms !important; }
 }
+#nowPlaying { transition: opacity .35s ease; }
 </style>
 </head>
 <body>
@@ -641,7 +642,10 @@ body > *:not(#vn-stars):not(script) { position: relative; z-index: 1; }
 
  <!--Hidden YouTube Player Container -->
  <div style="position:absolute; top:-9999px; left:-9999px; opacity:0; pointer-events:none;">
- <div id="youtube-player"></div>
+ <div id="yt-player-0"></div>
+ <div id="yt-player-1"></div>
+ <div id="yt-player-2"></div>
+ <div id="yt-player-3"></div>
  </div>
  <script>
  // 1. STATION DATABASE
@@ -668,13 +672,7 @@ body > *:not(#vn-stars):not(script) { position: relative; z-index: 1; }
  }
  ];
  let currentStationIdx = 0;
- let ytPlayer = null;
- let isPlaying = false;
- function safeYTCall(fn) {
- if (ytPlayer && typeof ytPlayer.getPlayerState === 'function') {
- fn();
- }
- }
+
 
  // 2. WEB AUDIO ENGINE
  class SleeperAudioEngine {
@@ -712,7 +710,7 @@ body > *:not(#vn-stars):not(script) { position: relative; z-index: 1; }
  let lastOut = 0.0;
  for (let i = 0; i < bufferSize; i++) {
  const white = Math.random() * 2 - 1;
- Data[i] = (lastOut + (0.02 * white)) / 1.02;
+ data[i] = (lastOut + (0.02 * white)) / 1.02;
  lastOut = data[i];
  data[i] *= 3.5;
  }
@@ -720,10 +718,10 @@ body > *:not(#vn-stars):not(script) { position: relative; z-index: 1; }
  this.rumbleNode.buffer = buffer;
  this.rumbleNode.loop = true;
  const filter = this.ctx.createBiquadFilter();
- Filter.type = 'lowpass';
- Filter.frequency.value = 220;
+ filter.type = 'lowpass';
+ filter.frequency.value = 220;
  this.rumbleNode.connect(filter);
- Filter.connect(this.ambientGain);
+ filter.connect(this.ambientGain);
  this.rumbleNode.start();
  this.setAmbientVolume(vol);
  }
@@ -755,91 +753,191 @@ body > *:not(#vn-stars):not(script) { position: relative; z-index: 1; }
  const osc = this.ctx.createOscillator();
  const gain = this.ctx.createGain();
  osc.frequency.value = f;
- gain.gain.setValueAtTime(0, this.ctx.currentTime + I * 0.15);
- gain.gain.linearRampToValueAtTime(0.3, this.ctx.currentTime + I * 0.15 + 0.05);
- gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + I * 0.15 + 0.8);
+ gain.gain.setValueAtTime(0, this.ctx.currentTime + i * 0.15);
+ gain.gain.linearRampToValueAtTime(0.3, this.ctx.currentTime + i * 0.15 + 0.05);
+ gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + i * 0.15 + 0.8);
  osc.connect(gain);
  gain.connect(this.masterGain);
- osc.start(this.ctx.currentTime + I * 0.15);
- osc.stop(this.ctx.currentTime + I * 0.15 + 0.8);
+ osc.start(this.ctx.currentTime + i * 0.15);
+ osc.stop(this.ctx.currentTime + i * 0.15 + 0.8);
  });
  }
  }
  const audioEngine = new SleeperAudioEngine();
- // 3. YOUTUBE IFRAME SETUP
- function initYouTube() {
- const tag = document.createElement('script');
- tag.src = 'https://www.youtube.com/iframe_api';
- document.body.appendChild(tag);
- window.onYouTubeIframeAPIReady = () => {
- ytPlayer = new YT.Player('youtube-player', {
- height: '180', width: '320',
- videoId: STATIONS[0].youtubeId,
- playerVars: { 'playsinline': 1, 'controls': 0, 'disablekb': 1 },
- events: {
- 'onReady': () => console.log("YouTube API Ready")
+ // 3. SEAMLESS RADIO ENGINE
+ // One pre-cued YouTube player per station. Switching never reloads a
+ // video: the next track spins up MUTED behind the current song, and
+ // the volumes crossfade only once the song itself (not an ad) is
+ // actually playing. If YouTube inserts an ad on the incoming track,
+ // it plays out silently while the current song keeps playing.
+ const players = [];
+ const playerReady = STATIONS.map(() => false);
+ const warmedUp = STATIONS.map(() => false);
+ const ramps = {};
+ let ytApiReady = false;
+ let musicVolume = 0.8;
+ let muffleOn = false;
+ let switching = false;
+ let journeyOn = false;
+
+ function targetVolume() { return Math.round(musicVolume * (muffleOn ? 0.35 : 1) * 100); }
+ function playerCall(i, fn) {
+   const p = players[i];
+   if (p && typeof p.getPlayerState === 'function') { try { fn(p); } catch (e) {} }
  }
- });
- };
+ function rampVolume(i, toVol, ms, done) {
+   const p = players[i];
+   if (!p) { if (done) done(); return; }
+   if (ramps[i]) { clearInterval(ramps[i]); delete ramps[i]; }
+   let from = 0;
+   try { from = (typeof p.getVolume === 'function') ? p.getVolume() : 0; } catch (e) {}
+   const steps = Math.max(1, Math.round(ms / 40));
+   let s = 0;
+   ramps[i] = setInterval(() => {
+     s++;
+     const v = Math.round(from + (toVol - from) * (s / steps));
+     playerCall(i, pl => pl.setVolume(v));
+     if (s >= steps) { clearInterval(ramps[i]); delete ramps[i]; if (done) done(); }
+   }, 40);
+ }
+ function startStationAudio(i) {
+   playerCall(i, p => { p.unMute(); p.setVolume(0); p.playVideo(); });
+   rampVolume(i, targetVolume(), 600);
+ }
+ function warmUp(i) {
+   if (warmedUp[i]) return;
+   playerCall(i, p => { p.mute(); p.playVideo(); });
+ }
+ function onPlayerState(i, e) {
+   if (!window.YT) return;
+   if (e.data === YT.PlayerState.PLAYING && !warmedUp[i] && i !== currentStationIdx) {
+     warmedUp[i] = true; // park it at 0:00, buffered and ready
+     playerCall(i, p => { p.pauseVideo(); p.seekTo(0, true); p.setVolume(0); });
+   }
+   if (e.data === YT.PlayerState.ENDED && i === currentStationIdx && journeyOn && !switching) {
+     changeStation(1); // song over -> the journey rolls on
+   }
+ }
+ function initYouTube() {
+   const tag = document.createElement('script');
+   tag.src = 'https://www.youtube.com/iframe_api';
+   document.body.appendChild(tag);
+   window.onYouTubeIframeAPIReady = () => {
+     ytApiReady = true;
+     STATIONS.forEach((st, i) => {
+       players[i] = new YT.Player('yt-player-' + i, {
+         height: '180', width: '320',
+         videoId: st.youtubeId,
+         playerVars: { 'playsinline': 1, 'controls': 0, 'disablekb': 1 },
+         events: {
+           'onReady': () => {
+             playerReady[i] = true;
+             playerCall(i, p => p.setVolume(0));
+             if (journeyOn) { if (i === currentStationIdx) startStationAudio(i); else warmUp(i); }
+           },
+           'onStateChange': (e) => onPlayerState(i, e)
+         }
+       });
+     });
+   };
+ }
+ // Spin station i up muted; crossfade only when real content plays.
+ function spinUpAndCrossfade(i, prev, cb) {
+   let finished = false;
+   const finish = () => { if (!finished) { finished = true; if (cb) cb(); } };
+   playerCall(i, p => { p.mute(); p.setVolume(0); p.playVideo(); });
+   const t0 = Date.now();
+   const poll = setInterval(() => {
+     let state = -1, ad = 0;
+     playerCall(i, p => {
+       state = p.getPlayerState();
+       if (typeof p.getAdState === 'function') ad = p.getAdState();
+     });
+     const contentPlaying = (state === 1 && ad !== 1);
+     if (contentPlaying || Date.now() - t0 > 7000) {
+       clearInterval(poll);
+       playerCall(i, p => p.unMute());
+       rampVolume(i, targetVolume(), 600);
+       if (prev !== i) rampVolume(prev, 0, 600, () => playerCall(prev, p => p.pauseVideo()));
+       finish();
+     }
+   }, 200);
  }
  initYouTube();
  // 4. STATION TRANSITION CONTROLLER
- async function changeStation(dir) {
- audioEngine.playAirBrakeHiss();
- document.getElementById('platformOverlay').classList.add('active');
- const signboard = document.getElementById('signboard');
- signboard.classList.add('slide-out');
- setTimeout(() => {
- currentStationIdx = (currentStationIdx + dir + STATIONS.length) % STATIONS.length;
- const st = STATIONS[currentStationIdx];
- document.getElementById('stationHindi').textContent = st.hindi;
- document.getElementById('stationEnglish').textContent = st.english;
- document.getElementById('stationElevation').textContent = st.elevation;
- document.getElementById('stationCode').textContent = st.code;
- document.getElementById('nowPlaying').textContent = '🎵 ' + st.song;
- safeYTCall(() => {
- ytPlayer.loadVideoById(st.youtubeId);
- isPlaying = true;
- document.getElementById('startBtn').textContent = '⏸ PAUSE';
- });
- audioEngine.playStationChime();
- signboard.classList.remove('slide-out');
- signboard.classList.add('slide-in');
- }, 500);
- setTimeout(() => {
- document.getElementById('platformOverlay').classList.remove('active');
- signboard.classList.remove('slide-in');
- }, 2000);
+ function changeStation(dir) {
+   if (switching) return;
+   switching = true;
+   audioEngine.playAirBrakeHiss();
+   document.getElementById('platformOverlay').classList.add('active');
+   const signboard = document.getElementById('signboard');
+   signboard.classList.add('slide-out');
+   const np = document.getElementById('nowPlaying');
+   np.style.opacity = '0';
+   setTimeout(() => {
+     const prevIdx = currentStationIdx;
+     currentStationIdx = (currentStationIdx + dir + STATIONS.length) % STATIONS.length;
+     const st = STATIONS[currentStationIdx];
+     document.getElementById('stationHindi').textContent = st.hindi;
+     document.getElementById('stationEnglish').textContent = st.english;
+     document.getElementById('stationElevation').textContent = st.elevation;
+     document.getElementById('stationCode').textContent = st.code;
+     audioEngine.playStationChime();
+     signboard.classList.remove('slide-out');
+     signboard.classList.add('slide-in');
+     let revealed = false;
+     const reveal = () => {
+       if (revealed) return;
+       revealed = true;
+       np.textContent = '🎵 ' + st.song;
+       np.style.opacity = '1';
+       document.getElementById('platformOverlay').classList.remove('active');
+       signboard.classList.remove('slide-in');
+       if (journeyOn) document.getElementById('startBtn').textContent = '⏸ PAUSE';
+       switching = false;
+     };
+     if (journeyOn && ytApiReady) {
+       spinUpAndCrossfade(currentStationIdx, prevIdx, reveal);
+       setTimeout(reveal, 2500); // never hold the signboard hostage
+     } else {
+       reveal();
+     }
+   }, 300);
  }
  // 5. EVENT LISTENERS
  document.getElementById('startBtn').addEventListener('click', () => {
- audioEngine.init();
- audioEngine.startProceduralTrainRumble();
- safeYTCall(() => {
- if (isPlaying) {
- ytPlayer.pauseVideo();
- document.getElementById('startBtn').textContent = '▶ RESUME JOURNEY';
- } else {
- ytPlayer.playVideo();
- document.getElementById('startBtn').textContent = '⏸ PAUSE';
- }
- isPlaying = !isPlaying;
- });
+   audioEngine.init();
+   audioEngine.startProceduralTrainRumble();
+   if (journeyOn) {
+     journeyOn = false;
+     const i = currentStationIdx;
+     rampVolume(i, 0, 350, () => playerCall(i, p => p.pauseVideo()));
+     document.getElementById('startBtn').textContent = '▶ RESUME JOURNEY';
+   } else {
+     journeyOn = true;
+     document.getElementById('startBtn').textContent = '⏸ PAUSE';
+     if (ytApiReady) {
+       startStationAudio(currentStationIdx);
+       STATIONS.forEach((_, j) => { if (j !== currentStationIdx) warmUp(j); });
+     }
+   }
  });
  document.getElementById('nextStationBtn').addEventListener('click', () => changeStation(1));
  document.getElementById('prevStationBtn').addEventListener('click', () => changeStation(-1));
  document.getElementById('windowLatch').addEventListener('input', e => {
- document.getElementById('glassShutter').style.height = `${e.target.value}%`;
+   document.getElementById('glassShutter').style.height = `${e.target.value}%`;
  });
  document.getElementById('ambientVolSlider').addEventListener('input', e => {
- audioEngine.setAmbientVolume(parseFloat(e.target.value));
+   audioEngine.setAmbientVolume(parseFloat(e.target.value));
  });
  document.getElementById('musicVolSlider').addEventListener('input', e => {
- safeYTCall(() => {
- ytPlayer.setVolume(parseFloat(e.target.value) * 100);
+   musicVolume = parseFloat(e.target.value);
+   if (journeyOn) rampVolume(currentStationIdx, targetVolume(), 120);
  });
+ document.getElementById('muffleRadioToggle').addEventListener('change', e => {
+   muffleOn = e.target.checked;
+   if (journeyOn) rampVolume(currentStationIdx, targetVolume(), 200);
  });
-
  // 6. EMERGENCY CHAIN PULL
  const chainContainer = document.getElementById('chainContainer');
  const alarmBox = document.getElementById('alarmBox');
@@ -864,8 +962,8 @@ body > *:not(#vn-stars):not(script) { position: relative; z-index: 1; }
  chainContainer.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.4)';
  if (currentY >= 70) {
  audioEngine.playAirBrakeHiss();
- safeYTCall(() => ytPlayer.pauseVideo());
- isPlaying = false;
+ journeyOn = false;
+ rampVolume(currentStationIdx, 0, 300, () => playerCall(currentStationIdx, p => p.pauseVideo()));
  document.getElementById('startBtn').textContent = '▶ RESUME JOURNEY';
  alarmBox.classList.add('pulled');
  document.getElementById('pullTooltip').textContent = "BRAKE ACTIVE";
