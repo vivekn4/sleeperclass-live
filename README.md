@@ -20,7 +20,7 @@ A late-night Indian Railways sleeper-coach experience in a single HTML file. Set
 - 🌃 **Passing stations** — glowing signboards roll by (Nagpur, Itarsi, Bhopal, Varanasi…)
 - 🔊 **Procedural audio** — WebAudio-synthesized train rumble, ambient loops, and UI chimes (no audio files)
 - ⛓️ **Emergency chain** — pull it and feel the brake (with a 3-second reset, don't worry)
-- 📻 **Evergreen radio** — a fixed playlist of 90s & 2000s Bollywood train classics: Chaiyya Chaiyya (Dil Se), Kasto Mazza (Parineeta), Dhadak Dhadak (Bunty Aur Babli), Yun Hi Chala Chal (Swades) — one per station
+- 📻 **Evergreen radio, seamless** — a fixed playlist of 90s & 2000s Bollywood train classics: Chaiyya Chaiyya (Dil Se), Kasto Mazza (Parineeta), Dhadak Dhadak (Bunty Aur Babli), Yun Hi Chala Chal (Swades) — one per station. Every track is pre-loaded in its own player, so switching stations crossfades instantly with no reload gap; if YouTube queues an ad on the next track, it plays out silently while your current song keeps playing
 - 🎚️ **Mixing controls** — separate music / train-noise volume sliders, window latch, radio muffle
 - ✨ **Maximalist night sky** — twinkling starfield, glowing signboard pulse, hover-glow controls
 - ♿ **Reduced-motion respected** — calm static mode when your OS prefers it
