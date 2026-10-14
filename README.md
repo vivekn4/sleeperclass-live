@@ -24,6 +24,13 @@ A late-night Indian Railways sleeper-coach experience in a single HTML file. Set
 - 🎚️ **Mixing controls** — separate music / train-noise volume sliders, window latch, radio muffle
 - ✨ **Maximalist night sky** — twinkling starfield, glowing signboard pulse, hover-glow controls
 - ♿ **Reduced-motion respected** — calm static mode when your OS prefers it
+- 🕛 **Journey clock + night phases** — the ride runs 23:40 → 05:00 (1 real second = 2 journey minutes while riding); the sky tint, moon arc, and phase label (Late Night → Deep Night → Pre-Dawn) follow the clock. Tap the clock to fast-forward 30 minutes
+- 🚇 **Tunnel events** — every 45–90 seconds the train dives into a tunnel: the window darkens, tunnel lights strobe past, the rumble swells, then the night returns
+- 🌧️ **Synthesized ambience layers** — toggle Rain (filtered noise + droplet plinks), Crickets (chirp bursts), and a Distant Horn (low two-tone swell), all generated live with WebAudio, no audio files
+- 🎛️ **Atmosphere presets** — one click re-mixes the whole scene: Monsoon Night, Deep Sleep, Quiet Halt
+- 🔗 **Share Journey** — copies a link (`#j=…`) that restores the station, mix, ambience layers, and clock for anyone who opens it
+- 😴 **Sleep timer** — 15 / 30 / 60 minutes; the master bus fades out over the final 15 seconds, then the journey pauses
+- 🔊 **Master limiter + perceptual volume curves** — a DynamicsCompressor catches stacked-layer peaks just below 0 dBFS; slider volumes use a squared curve so 50% sounds half as loud
 
 ## Controls
 
@@ -35,6 +42,21 @@ A late-night Indian Railways sleeper-coach experience in a single HTML file. Set
 | **Emergency chain** | Click-drag the chain down to pull it |
 | **Sliders** | Mix music vs. train noise |
 | 🔊 button (bottom-right) | Mute / unmute UI sounds |
+| 🕛 clock (control panel) | Tap to fast-forward 30 journey-minutes |
+| 🌧️🦗📯 Ambience chips | Toggle Rain / Crickets / Distant Horn layers |
+| 🎛️ Atmosphere buttons | One-click mixes: Monsoon Night / Deep Sleep / Quiet Halt |
+| 🔗 Share Journey | Copy a link that restores station + mix + clock |
+| Sleep timer dropdown | Fade out over the final 15 s, then pause (15 / 30 / 60 min) |
+
+## Tests
+
+```bash
+node --test tests/journey.test.js   # journey-clock / share-link pure helpers
+```
+
+The helpers are extracted from `index.html` and evaluated in a sandbox, so the
+tests verify the shipped code. All inline `<script>` blocks also pass
+`node --check`.
 
 ## Usage
 

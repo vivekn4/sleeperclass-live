@@ -563,6 +563,38 @@ body > *:not(#vn-stars):not(script) { position: relative; z-index: 1; }
   * { animation-duration: .01ms !important; }
 }
 #nowPlaying { transition: opacity .35s ease; }
+/* ============================================================
+   VN upgrade (teardown 2026-10-14): journey clock, tunnel,
+   ambience layers, presets, share + sleep timer.
+   Mechanisms learned from open-source ambient apps, re-implemented
+   here in original code — see PLAN.md for sources.
+   ============================================================ */
+.night-scene::before { display: none; } /* moon is now #vn-moon, driven by the journey clock */
+#vn-moon {
+  position: absolute; width: 40px; height: 40px; border-radius: 50%;
+  background: #fffdf0; box-shadow: 0 0 25px rgba(255,253,240,.6);
+  z-index: 1; transition: left 1s linear, top 1s linear, opacity 1s ease;
+}
+#tunnelOverlay {
+  position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: 0;
+  background: repeating-linear-gradient(90deg, rgba(255,190,60,.55) 0 6px, transparent 6px 90px);
+}
+.window-viewport.tunnel #tunnelOverlay { opacity: 1; animation: vn-tunnel-lights .5s linear infinite; }
+.window-viewport.tunnel .night-scene { filter: brightness(.32); }
+.window-viewport.tunnel #vn-moon { opacity: 0; }
+@keyframes vn-tunnel-lights { from { background-position-x: 0; } to { background-position-x: -180px; } }
+#journeyClock { font-family: 'Courier Prime', monospace; font-weight: 700; color: #ffcf7d; cursor: pointer; }
+#journeyClock:hover { text-decoration: underline; }
+#journeyPhase { font-size: .75rem; font-weight: 700; color: #8a939e; text-transform: uppercase; letter-spacing: .5px; }
+.chip.active { background: #f8be00; color: #0d131a; }
+.chip { min-width: 92px; text-align: center; }
+.vn-select {
+  background: #16222f; color: #f8be00; border: 1.5px solid #f8be00;
+  padding: 8px 10px; border-radius: 6px; font-weight: bold; font-family: inherit; cursor: pointer;
+}
+@media (prefers-reduced-motion: reduce) {
+  #tunnelOverlay, #vn-moon { animation: none !important; transition: none !important; }
+}
 </style>
 </head>
 <body>
@@ -591,6 +623,8 @@ body > *:not(#vn-stars):not(script) { position: relative; z-index: 1; }
  <div class="window-gasket">
  <div class="window-viewport" id="viewport">
  <div class="night-scene"></div>
+ <div id="vn-moon" aria-hidden="true"></div>
+ <div id="tunnelOverlay" aria-hidden="true"></div>
  <div class="platform-lights-overlay" id="platformOverlay"></div>
  <!--Station Signboard Overlay -->
  <div class="station-overlay-wrapper">
@@ -629,14 +663,39 @@ body > *:not(#vn-stars):not(script) { position: relative; z-index: 1; }
  <div class="control-group">
  <span class="slider-label">Music</span>
  <input type="range" min="0" max="1" step="0.05" value="0.8" class="control-slider" id="musicVolSlider">
+ <label class="slider-label" style="cursor:pointer;"><input type="checkbox" id="muffleRadioToggle"> 🔇 Muffle radio</label>
  <span class="slider-label">Train Noise</span>
  <input type="range" min="0" max="1" step="0.05" value="0.35" class="control-slider" id="ambientVolSlider">
  </div>
  <div class="control-group">
- <label class="switch-label">
- <input type="checkbox" id="muffleRadioToggle">
- <span>📻 Muffled Earphone Effect</span>
- </label>
+ <span class="slider-label" id="journeyClock" title="Tap to fast-forward 30 minutes">🕛 23:40</span>
+ <span id="journeyPhase">Late Night</span>
+ </div>
+ </div>
+
+ <!--VN upgrade: ambience layers, atmosphere presets, sleep timer, share -->
+ <div class="controls-panel" id="vn-panel2">
+ <div class="control-group">
+ <span class="slider-label">Ambience</span>
+ <button class="btn chip" id="layerRain" aria-pressed="false">🌧️ Rain</button>
+ <button class="btn chip" id="layerCrickets" aria-pressed="false">🦗 Crickets</button>
+ <button class="btn chip" id="layerHorn" aria-pressed="false">📯 Distant Horn</button>
+ </div>
+ <div class="control-group">
+ <span class="slider-label">Atmosphere</span>
+ <button class="btn" id="presetMonsoon">Monsoon Night</button>
+ <button class="btn" id="presetSleep">Deep Sleep</button>
+ <button class="btn" id="presetHalt">Quiet Halt</button>
+ </div>
+ <div class="control-group">
+ <span class="slider-label">Sleep timer</span>
+ <select class="vn-select" id="sleepTimer" title="Fade out and pause when the timer ends">
+ <option value="0">Off</option>
+ <option value="15">15 min</option>
+ <option value="30">30 min</option>
+ <option value="60">60 min</option>
+ </select>
+ <button class="btn" id="shareJourneyBtn" title="Copy a link that restores this station, mix and clock">🔗 Share Journey</button>
  </div>
  </div>
 
@@ -690,13 +749,25 @@ body > *:not(#vn-stars):not(script) { position: relative; z-index: 1; }
  this.masterGain = this.ctx.createGain();
  this.ambientGain = this.ctx.createGain();
  this.ambientGain.connect(this.masterGain);
- this.masterGain.connect(this.ctx.destination);
+ // VN upgrade: master limiter — stacked layers (rumble + ambience + UI)
+ // can no longer clip the output. Gentle catch just below 0 dBFS.
+ this.limiter = this.ctx.createDynamicsCompressor();
+ this.limiter.threshold.value = -3;
+ this.limiter.knee.value = 0;
+ this.limiter.ratio.value = 20;
+ this.limiter.attack.value = 0.003;
+ this.limiter.release.value = 0.25;
+ this.masterGain.connect(this.limiter);
+ this.limiter.connect(this.ctx.destination);
  if (this.ctx.state === 'suspended') this.ctx.resume();
  this.isInit = true;
  }
  setAmbientVolume(vol) {
  if (this.ambientGain && this.ctx) {
- this.ambientGain.gain.setTargetAtTime(vol, this.ctx.currentTime, 0.05);
+ // VN upgrade: perceptual (squared) curve — a slider at 50% now
+ // sounds about half as loud instead of ~70% (linear gain).
+ const perceived = Math.max(0, Math.min(1, vol)) ** 2;
+ this.ambientGain.gain.setTargetAtTime(perceived, this.ctx.currentTime, 0.05);
  }
  }
  startProceduralTrainRumble(vol = 0.35) {
@@ -780,7 +851,7 @@ body > *:not(#vn-stars):not(script) { position: relative; z-index: 1; }
  let switching = false;
  let journeyOn = false;
 
- function targetVolume() { return Math.round(musicVolume * (muffleOn ? 0.35 : 1) * 100); }
+ function targetVolume() { return Math.round(musicVolume * musicVolume * (muffleOn ? 0.35 : 1) * 100); }
  function playerCall(i, fn) {
    const p = players[i];
    if (p && typeof p.getPlayerState === 'function') { try { fn(p); } catch (e) {} }
@@ -1064,6 +1135,312 @@ body > *:not(#vn-stars):not(script) { position: relative; z-index: 1; }
    }
    addEventListener("resize", resize);
    init(); frame();
+ })();
+ </script>
+ <script>
+ /* VN upgrade: pure journey helpers — no DOM, unit-tested in tests/journey.test.js.
+    Mechanisms learned from open-source ambient apps, re-implemented in original code. */
+ window.VN_Journey = (function () {
+   "use strict";
+   var START_MINUTES = 23 * 60 + 40; // 23:40 departure
+   var DAY = 24 * 60;
+   function norm(m) { return ((m % DAY) + DAY) % DAY; }
+   function phaseFor(totalMinutes) {
+     var m = norm(totalMinutes);
+     if (m >= 23 * 60 + 40 || m < 30) return { id: "late", label: "Late Night" };
+     if (m < 3 * 60 + 30) return { id: "deep", label: "Deep Night" };
+     if (m < 5 * 60) return { id: "predawn", label: "Pre-Dawn" };
+     return { id: "late", label: "Late Night" };
+   }
+   function fmt(totalMinutes) {
+     var m = norm(totalMinutes);
+     var h = Math.floor(m / 60), mi = m % 60;
+     return String(h).padStart(2, "0") + ":" + String(mi).padStart(2, "0");
+   }
+   function lerp(a, b, t) { return Math.round(a + (b - a) * t); }
+   function tintFor(totalMinutes) {
+     // Darkness peaks around 02:00, lifts toward 05:00 dawn.
+     var m = norm(totalMinutes), d;
+     if (m >= 23 * 60 + 40 || m < 2 * 60) d = 0.85;
+     else if (m < 5 * 60) d = 0.85 - ((m - 2 * 60) / 180) * 0.5;
+     else d = 0.6;
+     return {
+       top: "rgb(" + lerp(38, 17, d) + "," + lerp(64, 29, d) + "," + lerp(110, 51, d) + ")",
+       bottom: "rgb(" + lerp(12, 3, d) + "," + lerp(22, 7, d) + "," + lerp(44, 16, d) + ")",
+       darkness: d
+     };
+   }
+   function moonPos(totalMinutes) {
+     // Moon arcs across the window from departure (23:40) to dawn (05:00).
+     var span = 320, p = (norm(totalMinutes) - START_MINUTES + DAY) % DAY / span;
+     if (p < 0) p = 0; if (p > 1) p = 1;
+     return {
+       leftPct: 8 + p * 76,
+       topPct: 38 - Math.sin(p * Math.PI) * 26,
+       opacity: p > 0.9 ? 1 - (p - 0.9) * 10 : 1
+     };
+   }
+   function squared(v) { v = Math.max(0, Math.min(1, v)); return v * v; }
+   function toB64Url(str) {
+     return btoa(unescape(encodeURIComponent(str))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+   }
+   function fromB64Url(tok) {
+     tok = tok.replace(/-/g, "+").replace(/_/g, "/");
+     while (tok.length % 4) tok += "=";
+     return decodeURIComponent(escape(atob(tok)));
+   }
+   function encodeState(s) {
+     return toB64Url(JSON.stringify({
+       station: s.station | 0, music: +s.music || 0, ambient: +s.ambient || 0,
+       layers: (s.layers || []).slice(0, 8), clock: Math.round(s.clock) || 0,
+       muffle: !!s.muffle
+     }));
+   }
+   function decodeState(hash) {
+     try {
+       var tok = String(hash || "").replace(/^#j=/, "").replace(/^#/, "");
+       if (!tok) return null;
+       var o = JSON.parse(fromB64Url(tok));
+       if (typeof o !== "object" || o === null) return null;
+       if (!(o.station >= 0 && o.station < 64)) return null;
+       if (!(o.music >= 0 && o.music <= 1)) return null;
+       if (!(o.ambient >= 0 && o.ambient <= 1)) return null;
+       if (!Array.isArray(o.layers)) return null;
+       if (!(o.clock >= 0 && o.clock < DAY)) return null;
+       return o;
+     } catch (e) { return null; }
+   }
+   return { START_MINUTES: START_MINUTES, phaseFor: phaseFor, fmt: fmt, tintFor: tintFor,
+     moonPos: moonPos, squared: squared, encodeState: encodeState, decodeState: decodeState };
+ })();
+ </script>
+ <script>
+ /* VN upgrade: journey clock + night phases, tunnel events, synthesized
+    ambience layers, atmosphere presets, share link, sleep timer.
+    All audio is synthesized with WebAudio — no audio files. */
+ (function () {
+   "use strict";
+   var J = window.VN_Journey;
+   var $ = function (id) { return document.getElementById(id); };
+   var clockMin = J.START_MINUTES;
+   var clockEl = $("journeyClock"), phaseEl = $("journeyPhase");
+   var moonEl = $("vn-moon"), viewportEl = $("viewport");
+   var nightScene = document.querySelector(".night-scene");
+
+   function paintClock() {
+     clockEl.textContent = "\uD83D\uDD5B " + J.fmt(clockMin);
+     phaseEl.textContent = J.phaseFor(clockMin).label;
+     var tint = J.tintFor(clockMin);
+     nightScene.style.background = "radial-gradient(circle at 50% 30%, " + tint.top + " 0%, " + tint.bottom + " 100%)";
+     var mp = J.moonPos(clockMin);
+     moonEl.style.left = mp.leftPct + "%";
+     moonEl.style.top = mp.topPct + "%";
+     moonEl.style.opacity = mp.opacity;
+   }
+   clockEl.addEventListener("click", function () { clockMin += 30; paintClock(); });
+   setInterval(function () { if (journeyOn) { clockMin += 2; paintClock(); } }, 1000); // 1 real second = 2 journey minutes, while riding
+
+   /* ---- Tunnel events: the window goes dark, the rumble swells, tunnel lights strobe past. ---- */
+   function scheduleTunnel() {
+     setTimeout(function () {
+       if (!journeyOn) { scheduleTunnel(); return; }
+       viewportEl.classList.add("tunnel");
+       try {
+         if (audioEngine.ctx) audioEngine.ambientGain.gain.setTargetAtTime(0.6, audioEngine.ctx.currentTime, 0.3);
+       } catch (e) {}
+       setTimeout(function () {
+         viewportEl.classList.remove("tunnel");
+         try { audioEngine.setAmbientVolume(parseFloat($("ambientVolSlider").value)); } catch (e) {}
+         scheduleTunnel();
+       }, 4000 + Math.random() * 3000);
+     }, 45000 + Math.random() * 45000);
+   }
+   scheduleTunnel();
+
+   /* ---- Synthesized ambience layers (WebAudio only, no files). ---- */
+   function whiteBuffer(ac, seconds) {
+     var buf = ac.createBuffer(1, ac.sampleRate * seconds, ac.sampleRate);
+     var d = buf.getChannelData(0);
+     for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+     return buf;
+   }
+   var VN_Ambience = {
+     layers: {},
+     startRain: function () {
+       audioEngine.init(); var ac = audioEngine.ctx;
+       var src = ac.createBufferSource(); src.buffer = whiteBuffer(ac, 2); src.loop = true;
+       var bp = ac.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1600; bp.Q.value = 0.6;
+       var g = ac.createGain(); g.gain.value = 0;
+       var lfo = ac.createOscillator(); lfo.frequency.value = 0.7;
+       var lfoG = ac.createGain(); lfoG.gain.value = 0.05;
+       lfo.connect(lfoG); lfoG.connect(g.gain);
+       src.connect(bp); bp.connect(g); g.connect(audioEngine.ambientGain);
+       src.start(); lfo.start();
+       g.gain.setTargetAtTime(0.16, ac.currentTime, 0.4);
+       var alive = true, timer = null;
+       (function drop() {
+         if (!alive) return;
+         var o = ac.createOscillator(), og = ac.createGain(), t = ac.currentTime;
+         o.type = "sine"; o.frequency.value = 2100 + Math.random() * 1400;
+         og.gain.setValueAtTime(0.0001, t);
+         og.gain.exponentialRampToValueAtTime(0.02, t + 0.008);
+         og.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+         o.connect(og); og.connect(audioEngine.ambientGain);
+         o.start(t); o.stop(t + 0.12);
+         timer = setTimeout(drop, 180 + Math.random() * 520);
+       })();
+       return { stop: function () {
+         alive = false; clearTimeout(timer);
+         g.gain.setTargetAtTime(0, ac.currentTime, 0.3);
+         setTimeout(function () { try { src.stop(); lfo.stop(); } catch (e) {} }, 1200);
+       } };
+     },
+     startCrickets: function () {
+       audioEngine.init(); var ac = audioEngine.ctx;
+       var timer = setInterval(function () {
+         if (Math.random() > 0.8) return;
+         for (var k = 0; k < 3; k++) {
+           (function (k) {
+             var t = ac.currentTime + k * 0.07;
+             var o = ac.createOscillator(), og = ac.createGain();
+             o.type = "sine"; o.frequency.value = 4200 + Math.random() * 300;
+             og.gain.setValueAtTime(0.0001, t);
+             og.gain.exponentialRampToValueAtTime(0.025, t + 0.01);
+             og.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+             o.connect(og); og.connect(audioEngine.ambientGain);
+             o.start(t); o.stop(t + 0.07);
+           })(k);
+         }
+       }, 900);
+       return { stop: function () { clearInterval(timer); } };
+     },
+     startHorn: function () {
+       audioEngine.init(); var ac = audioEngine.ctx;
+       var timer = null, active = [];
+       function blast() {
+         var t = ac.currentTime;
+         [233.08, 293.66].forEach(function (f) {
+           var o = ac.createOscillator(), og = ac.createGain(), lp = ac.createBiquadFilter();
+           o.type = "sawtooth"; o.frequency.value = f;
+           lp.type = "lowpass"; lp.frequency.value = 800;
+           og.gain.setValueAtTime(0.0001, t);
+           og.gain.exponentialRampToValueAtTime(0.05, t + 0.9);
+           og.gain.exponentialRampToValueAtTime(0.0001, t + 3.5);
+           o.connect(lp); lp.connect(og); og.connect(audioEngine.masterGain);
+           o.start(t); o.stop(t + 3.7);
+           active.push(o);
+         });
+         timer = setTimeout(blast, 35000 + Math.random() * 45000);
+       }
+       timer = setTimeout(blast, 8000 + Math.random() * 20000);
+       return { stop: function () { clearTimeout(timer); active.forEach(function (o) { try { o.stop(); } catch (e) {} }); } };
+     }
+   };
+   function layerToggle(name, btnId, starter) {
+     var btn = $(btnId);
+     function set(on) {
+       if (on && !VN_Ambience.layers[name]) VN_Ambience.layers[name] = starter();
+       if (!on && VN_Ambience.layers[name]) { VN_Ambience.layers[name].stop(); delete VN_Ambience.layers[name]; }
+       btn.classList.toggle("active", !!VN_Ambience.layers[name]);
+       btn.setAttribute("aria-pressed", VN_Ambience.layers[name] ? "true" : "false");
+     }
+     btn.addEventListener("click", function () { set(!VN_Ambience.layers[name]); });
+     return set;
+   }
+   var setRain = layerToggle("rain", "layerRain", VN_Ambience.startRain);
+   var setCrickets = layerToggle("crickets", "layerCrickets", VN_Ambience.startCrickets);
+   var setHorn = layerToggle("horn", "layerHorn", VN_Ambience.startHorn);
+   window.VN_Ambience = VN_Ambience;
+
+   /* ---- Atmosphere presets: one click re-mixes music, rumble + layers. ---- */
+   function applyPreset(p) {
+     $("musicVolSlider").value = p.music;
+     $("ambientVolSlider").value = p.ambient;
+     musicVolume = p.music;
+     audioEngine.setAmbientVolume(p.ambient);
+     if (journeyOn) rampVolume(currentStationIdx, targetVolume(), 200);
+     muffleOn = !!p.muffle;
+     $("muffleRadioToggle").checked = muffleOn;
+     if (journeyOn) rampVolume(currentStationIdx, targetVolume(), 200);
+     setRain(!!p.rain); setCrickets(!!p.crickets); setHorn(!!p.horn);
+   }
+   $("presetMonsoon").addEventListener("click", function () { applyPreset({ music: 0.6, ambient: 0.6, rain: true, crickets: false, horn: true, muffle: false }); });
+   $("presetSleep").addEventListener("click", function () { applyPreset({ music: 0.25, ambient: 0.45, rain: false, crickets: true, horn: false, muffle: true }); });
+   $("presetHalt").addEventListener("click", function () { applyPreset({ music: 0.35, ambient: 0.15, rain: false, crickets: false, horn: false, muffle: false }); });
+
+   /* ---- Share: encode station + mix + clock into a #j= link. ---- */
+   $("shareJourneyBtn").addEventListener("click", function () {
+     var btn = $("shareJourneyBtn");
+     var token = J.encodeState({
+       station: currentStationIdx, music: musicVolume,
+       ambient: parseFloat($("ambientVolSlider").value),
+       layers: Object.keys(VN_Ambience.layers), clock: clockMin, muffle: muffleOn
+     });
+     var url = location.origin + location.pathname + "#j=" + token;
+     function done() { var old = btn.textContent; btn.textContent = "\u2713 Link Copied"; setTimeout(function () { btn.textContent = old; }, 2000); }
+     if (navigator.clipboard && navigator.clipboard.writeText) {
+       navigator.clipboard.writeText(url).then(done).catch(function () { window.prompt("Copy your journey link:", url); });
+     } else { window.prompt("Copy your journey link:", url); }
+   });
+
+   /* ---- Restore a shared journey on load. ---- */
+   (function restoreShared() {
+     var st = J.decodeState(location.hash);
+     if (!st) return;
+     clockMin = st.clock;
+     var s = STATIONS[st.station];
+     currentStationIdx = st.station;
+     $("stationHindi").textContent = s.hindi;
+     $("stationEnglish").textContent = s.english;
+     $("stationElevation").textContent = s.elevation;
+     $("stationCode").textContent = s.code;
+     $("nowPlaying").textContent = "\uD83C\uDFB5 " + s.song;
+     $("musicVolSlider").value = st.music; musicVolume = st.music;
+     $("ambientVolSlider").value = st.ambient;
+     muffleOn = !!st.muffle; $("muffleRadioToggle").checked = muffleOn;
+     if (st.layers.indexOf("rain") >= 0) setRain(true);
+     if (st.layers.indexOf("crickets") >= 0) setCrickets(true);
+     if (st.layers.indexOf("horn") >= 0) setHorn(true);
+   })();
+
+   /* ---- Sleep timer: fade the master bus over the final 15 seconds, then pause. ---- */
+   var sleepDeadline = 0, sleepFading = false, sleepTick = null;
+   $("sleepTimer").addEventListener("change", function (e) {
+     var mins = parseFloat(e.target.value);
+     if (sleepTick) { clearInterval(sleepTick); sleepTick = null; }
+     sleepFading = false;
+     if (!mins) { sleepDeadline = 0; return; }
+     sleepDeadline = Date.now() + mins * 60000;
+     sleepTick = setInterval(function () {
+       var remain = sleepDeadline - Date.now();
+       if (remain <= 15000 && !sleepFading && audioEngine.ctx) {
+         sleepFading = true;
+         try {
+           var mg = audioEngine.masterGain.gain, t = audioEngine.ctx.currentTime;
+           mg.setValueAtTime(mg.value, t);
+           mg.linearRampToValueAtTime(0, t + Math.max(remain, 0) / 1000);
+         } catch (err) {}
+       }
+       if (remain <= 0) {
+         clearInterval(sleepTick); sleepTick = null;
+         journeyOn = false;
+         try {
+           rampVolume(currentStationIdx, 0, 300, function () { playerCall(currentStationIdx, function (p) { p.pauseVideo(); }); });
+           audioEngine.masterGain.gain.setTargetAtTime(1, audioEngine.ctx.currentTime, 0.5);
+         } catch (err) {}
+         Object.keys(VN_Ambience.layers).forEach(function (k) { VN_Ambience.layers[k].stop(); delete VN_Ambience.layers[k]; });
+         $("startBtn").textContent = "\u25B6 RESUME JOURNEY";
+         $("sleepTimer").value = "0";
+       }
+     }, 1000);
+   });
+
+   /* ---- Audio unlock hardening: resume a suspended context on any tap (mobile Safari). ---- */
+   document.addEventListener("pointerdown", function () {
+     try { if (audioEngine.ctx && audioEngine.ctx.state === "suspended") audioEngine.ctx.resume(); } catch (e) {}
+   }, { passive: true });
+
+   paintClock();
  })();
  </script>
 </body>
